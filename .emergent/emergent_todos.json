@@ -1,0 +1,42 @@
+[
+  {
+    "content": "R-0 Pulihkan lingkungan dari repo skskududu/KN (jaga .env, deps, seed, build FE)",
+    "status": "completed"
+  },
+  {
+    "content": "R-1 Reproduksi titik henti: 59 PASS / 2 FAIL dari 61 gate",
+    "status": "completed"
+  },
+  {
+    "content": "R-2 INV-AUTH-01: kenal require_any_permission + batas kata + SELF-TEST 8 kasus (gate baru)",
+    "status": "completed"
+  },
+  {
+    "content": "R-3 Residu audit_logs ditutup dengan run_with_restore (101→101)",
+    "status": "completed"
+  },
+  {
+    "content": "F-2 Audit peran diperluas ke 6 peran; panel mati jadi MERAH; izin yatim 58 palsu → 1 jujur",
+    "status": "completed"
+  },
+  {
+    "content": "F-2b 11 temuan diperbaiki: 3 izin baca, /ar/aging berbasis izin, 4 panel dipagari di kode, tombol denda dari izin",
+    "status": "completed"
+  },
+  {
+    "content": "F-1b Utang migrasi (i) ditutup: POC 38/38 + cacat sapuan-kedua alat migrasi diperbaiki",
+    "status": "completed"
+  },
+  {
+    "content": "F-3 KPI beranda berhenti berbohong: satu sumber antrean, endpoint /approvals/backlog, panel Control Tower, ringkasan Pusat Persetujuan, gate INV-HOME-01",
+    "status": "completed"
+  },
+  {
+    "content": "F-4 gate.sh --full HIJAU 65/65 + testing_agent_v3 8/8 user story + verifikasi tangan di layar",
+    "status": "completed"
+  },
+  {
+    "content": "F-5 Dokumen diperbarui: plan.md §STATUS F, SESSION_HANDOFF, INVARIANTS (INV-HOME-01), ROLE_UX_GAP_AUDIT, scripts/INDEX, tests/INDEX",
+    "status": "completed"
+  }
+]
