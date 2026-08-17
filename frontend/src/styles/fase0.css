@@ -153,7 +153,11 @@
 .notif-item.sev-info .notif-item-icon { background: var(--ios-blue-soft); color: var(--ios-blue-strong); }
 .notif-item-body { min-width: 0; flex: 1; }
 .notif-item-title { font-size: 12.5px; font-weight: 700; color: var(--ios-text); }
-.notif-item-text { margin-top: 2px; font-size: 11.5px; color: var(--ios-muted); line-height: 1.35; }
+/* `pre-line` — badan notifikasi kini bisa berisi DAFTAR dokumen (pengingat antrean
+   persetujuan 2026-08-15 menulis satu dokumen per baris: "• PO-00010 … 12 hari").
+   Tanpa ini seluruh daftar menempel jadi satu paragraf dan tak terbaca. Notifikasi
+   satu baris tidak terpengaruh. */
+.notif-item-text { margin-top: 2px; font-size: 11.5px; color: var(--ios-muted); line-height: 1.35; white-space: pre-line; }
 .notif-item-time { font-size: 10px; font-weight: 600; color: var(--ios-muted-2); }
 .notif-item-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 5px; }
 .notif-approve-button {

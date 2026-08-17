@@ -28,6 +28,7 @@ Satu baris = satu keadaan dokumen yang MENUNGGU KEPUTUSAN ORANG, dan `view`-nya
 WAJIB layar yang benar-benar ada di `AppViewRouter.jsx` (dijaga invarian D). Jangan
 menambah baris yang tak punya tempat kerja — angka tanpa jalan hanya membuat panik.
 """
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from db import db
 
@@ -84,8 +85,102 @@ def _scope(entity_id: Optional[Any]) -> Dict[str, Any]:
     return {"entity_id": entity_id}
 
 
-async def backlog(entity_id: Optional[str] = None) -> Dict[str, Any]:
-    """`{total, items (hanya yang > 0), all_items}` — antrean keputusan yang NYATA."""
+#: Dari mana UMUR TUNGGU satu dokumen dihitung, dan bagaimana ia disebut di layar.
+#: `since` = kandidat field tanggal (yang pertama ADA & terisi dipakai) — yang paling
+#: benar lebih dulu: kapan ia MULAI menunggu keputusan (diajukan), bukan kapan dibuat.
+#: Tanpa daftar ini "sudah menunggu berapa lama" hanya bisa ditebak dari `created_at`,
+#: padahal dokumen bisa lama berstatus draf sebelum diajukan → umurnya jadi
+#: kelihatan lebih tua daripada kenyataan dan pengingat berbohong.
+AGING_META: Dict[str, Dict[str, List[str]]] = {
+    "sales_order": {"since": ["submitted_for_approval_at", "created_at"],
+                    "number": ["number"], "title": ["customer_name"]},
+    "purchase_order": {"since": ["submitted_at", "created_at"],
+                       "number": ["po_number", "number"], "title": ["supplier_name"]},
+    "price": {"since": ["created_at"], "number": ["number"],
+              "title": ["product_name", "customer_name"]},
+    "purchase_requisition": {"since": ["submitted_at", "created_at"],
+                             "number": ["number"], "title": ["reason", "warehouse_name"]},
+    "sales_return": {"since": ["submitted_at", "created_at"], "number": ["number"],
+                     "title": ["customer_name", "order_number"]},
+    "purchase_return": {"since": ["submitted_at", "created_at"], "number": ["number"],
+                        "title": ["supplier_name", "po_number"]},
+    "amendment": {"since": ["proposed_at", "created_at"], "number": ["number"],
+                  "title": ["doc_number", "reason_label"]},
+    "interco": {"since": ["submitted_at", "created_at"], "number": ["number"],
+                "title": ["counterparty_name", "notes"]},
+    "cycle_count": {"since": ["submitted_at", "created_at"], "number": ["number"],
+                    "title": ["name", "warehouse_name"]},
+    "rnd_spec": {"since": ["submitted_at", "created_at"], "number": ["number"],
+                 "title": ["title", "design_title"]},
+    "rnd_sample": {"since": ["sent_at", "created_at"], "number": ["number"],
+                   "title": ["title", "spec_number"]},
+    "special_order": {"since": ["submitted_at", "created_at"], "number": ["number"],
+                      "title": ["customer_name"]},
+    "generic": {"since": ["created_at"], "number": ["number", "id"],
+                "title": ["title", "subject_type"]},
+}
+
+
+def _pick(doc: Dict[str, Any], fields: List[str], default: str = "") -> str:
+    for f in fields:
+        v = doc.get(f)
+        if v not in (None, "", [], {}):
+            return str(v)
+    return default
+
+
+def days_waiting(since: str) -> int:
+    """Umur tunggu dalam hari penuh (0 = hari ini). Tanggal kosong/rusak → 0."""
+    if not since:
+        return 0
+    try:
+        d = datetime.fromisoformat(str(since).replace("Z", "+00:00"))
+    except Exception:  # noqa: BLE001
+        return 0
+    if d.tzinfo is None:
+        d = d.replace(tzinfo=timezone.utc)
+    return max(0, (datetime.now(timezone.utc) - d).days)
+
+
+async def oldest(entity_id: Optional[Any] = None, limit: int = 8) -> List[Dict[str, Any]]:
+    """Dokumen yang PALING LAMA menunggu keputusan, lintas semua antrean.
+
+    KENAPA PENTING: angka "17 menunggu" memberi tahu ADA pekerjaan, tetapi tidak
+    memberi tahu MANA yang paling menyakitkan. Yang membuat orang bertindak adalah
+    "PO-00010 · Palembang Silk House · menunggu 12 hari". Dipakai kartu "Paling Lama
+    Menunggu" di beranda dan pengingat harian (`services/approval_reminder.py`).
+    """
+    scope = _scope(entity_id)
+    rows: List[Dict[str, Any]] = []
+    for key, label, view, coll, query in QUEUES:
+        meta = AGING_META.get(key) or {"since": ["created_at"], "number": ["number"],
+                                       "title": ["title"]}
+        try:
+            docs = await db[coll].find({**scope, **query}, {"_id": 0}).to_list(200)
+        except Exception:  # noqa: BLE001
+            continue
+        for d in docs:
+            since = _pick(d, meta["since"])
+            rows.append({
+                "key": key, "queue_label": label, "view": view,
+                "id": d.get("id", ""),
+                "number": _pick(d, meta["number"], d.get("id", "")),
+                "title": _pick(d, meta["title"], "—"),
+                "entity_id": d.get("entity_id", ""),
+                "since": since, "days_waiting": days_waiting(since),
+            })
+    rows.sort(key=lambda r: (-r["days_waiting"], r["since"] or ""))
+    return rows[:limit]
+
+
+async def backlog(entity_id: Optional[str] = None,
+                  with_oldest: bool = False, oldest_limit: int = 5) -> Dict[str, Any]:
+    """`{total, items (hanya yang > 0), all_items[, oldest]}` — antrean keputusan NYATA.
+
+    `with_oldest=True` menambahkan daftar dokumen yang paling lama menunggu (dipakai
+    beranda & Pusat Persetujuan). Dimatikan secara bawaan supaya pemanggil yang hanya
+    butuh ANGKA tidak membayar biaya membaca dokumen.
+    """
     scope = _scope(entity_id)
     rows: List[Dict[str, Any]] = []
     for key, label, view, coll, query in QUEUES:
@@ -94,5 +189,8 @@ async def backlog(entity_id: Optional[str] = None) -> Dict[str, Any]:
         except Exception:  # noqa: BLE001 — koleksi belum ada di instalasi baru
             count = 0
         rows.append({"key": key, "label": label, "view": view, "count": int(count)})
-    return {"total": sum(r["count"] for r in rows),
-            "items": [r for r in rows if r["count"] > 0], "all_items": rows}
+    out = {"total": sum(r["count"] for r in rows),
+           "items": [r for r in rows if r["count"] > 0], "all_items": rows}
+    if with_oldest:
+        out["oldest"] = await oldest(entity_id, limit=oldest_limit)
+    return out

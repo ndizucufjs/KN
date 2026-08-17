@@ -154,6 +154,33 @@ export default function ManagerHome({ selectedEntity = "all", onNavigate }) {
                 ))}
               </div>
             )}
+            {/* PALING LAMA MENUNGGU (permintaan pemilik 2026-08-15) — isi yang sama
+                dengan pengingat harian di notifikasi, supaya yang dibaca di WhatsApp/
+                lonceng dan yang dilihat di beranda tidak pernah berbeda. */}
+            {(approvals.oldest || []).length > 0 && (
+              <div className="mt-3 border-t border-[#F4F5F7] pt-2"
+                data-testid="manager-home-approvals-oldest">
+                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#9A9BA3]">
+                  Paling lama menunggu keputusan Anda
+                </p>
+                <div className="grid gap-1">
+                  {(approvals.oldest || []).map((o) => (
+                    <button key={`${o.key}-${o.id}`} type="button" onClick={() => go(o.view)}
+                      data-testid={`manager-home-oldest-${o.id || o.number}`}
+                      className="flex w-full items-center gap-2 rounded-lg border border-[#F4F5F7] bg-white px-2 py-1.5 text-left hover:border-[#E0C08A] transition">
+                      <span className="shrink-0 text-[12px] font-semibold text-[#1C1C1E]">{o.number}</span>
+                      <span className="min-w-0 flex-1 truncate text-[11.5px] text-[#6B6B73]">
+                        {o.queue_label.replace(" menunggu ACC", "")} · {o.title}
+                      </span>
+                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums ${
+                        o.days_waiting >= 7 ? "bg-[#FDE7E7] text-[#C0392B]" : "bg-[#FFF4E0] text-[#B26A00]"}`}>
+                        {o.days_waiting} hari
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </section>
 

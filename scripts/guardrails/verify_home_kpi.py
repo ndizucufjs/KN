@@ -164,6 +164,24 @@ def check_payload(g, role, payload, expected_rows, known_views):
         g.add(f"{role}: baris antrean menunjuk layar yang TIDAK ADA di AppViewRouter: "
               f"{hantu} — angka yang diklik mendarat di layar hantu.")
 
+    # G — daftar "paling lama menunggu" (dipakai kartu beranda & pengingat harian)
+    # tidak boleh menyebut dokumen dari antrean yang hitungannya 0, memakai layar
+    # hantu, atau berumur negatif. Kelas bug yang dicegah: kartu/pengingat menyebut
+    # dokumen yang tak pernah dihitung KPI → dua layar bicara beda lagi.
+    for o in (detail.get("oldest") or []):
+        g.bump()
+        if by_key.get(o.get("key"), 0) <= 0:
+            g.add(f"{role}: baris 'paling lama menunggu' {o.get('number')} berasal dari "
+                  f"antrean `{o.get('key')}` yang hitungannya 0 — dokumen yang tak "
+                  f"pernah dihitung KPI.")
+        elif o.get("view") not in known_views:
+            g.add(f"{role}: baris 'paling lama menunggu' {o.get('number')} menunjuk layar "
+                  f"`{o.get('view')}` yang tidak ada.")
+        elif int(o.get("days_waiting", -1)) < 0 or not o.get("number"):
+            g.add(f"{role}: baris 'paling lama menunggu' tanpa nomor dokumen atau berumur "
+                  f"negatif ({o.get('number')!r} · {o.get('days_waiting')}) — pengingat "
+                  f"harian akan menyebut sesuatu yang tak bisa dicari orang.")
+
 
 def self_test():
     """Bukti-merah: penjaga ini harus MENUDUH keempat pelanggaran & meloloskan yang benar."""
@@ -186,6 +204,20 @@ def self_test():
           "approvals": {"total": 0, "all_items": [
               {"key": "sales_order", "count": 0, "view": "approval-inbox"},
               {"key": "purchase_order", "count": 0, "view": "purchase-approval"}]}}, 2),
+        ("G: 'paling lama menunggu' dari antrean berhitung 0 → merah",
+         {"approvals_pending": 4,
+          "approvals": {"total": 4, "all_items": [
+              {"key": "sales_order", "count": 1, "view": "approval-inbox"},
+              {"key": "purchase_order", "count": 3, "view": "purchase-approval"}],
+              "oldest": [{"key": "price", "number": "PA-1", "view": "approval-inbox",
+                          "days_waiting": 9}]}}, 1),
+        ("G: 'paling lama menunggu' yang sehat → hijau",
+         {"approvals_pending": 4,
+          "approvals": {"total": 4, "all_items": [
+              {"key": "sales_order", "count": 1, "view": "approval-inbox"},
+              {"key": "purchase_order", "count": 3, "view": "purchase-approval"}],
+              "oldest": [{"key": "purchase_order", "number": "PO-1",
+                          "view": "purchase-approval", "days_waiting": 9}]}}, 0),
         ("D: baris menunjuk layar hantu → merah",
          {"approvals_pending": 4,
           "approvals": {"total": 4, "all_items": [

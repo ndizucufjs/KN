@@ -26,6 +26,8 @@ const TYPE_LABEL = {
   backorder_ready: "Pendingan siap",
   ar_due_soon: "Piutang mendekati jatuh tempo",
   restock_request: "Permintaan repeat/restock",
+  // 2026-08-15 — pengingat harian antrean persetujuan (services/approval_reminder.py)
+  approval_backlog: "Keputusan menunggu",
 };
 const typeLabel = (t) => TYPE_LABEL[t] || (t || "lainnya").replace(/_/g, " ");
 

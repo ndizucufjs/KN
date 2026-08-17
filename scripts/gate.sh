@@ -430,6 +430,13 @@ if [ $AUTH_READY -eq 1 ]; then
   # menutup cacat nyata: baris yang pemiliknya diputuskan ORANG lewat kasus keuangan
   # tetap menunjuk rekening GRUP, sehingga rekening itu tak pernah bisa dinonaktifkan.
   run_gate "POC F-1b Migrasi kas tingkat grup (utang migrasi i · 4 lapis bukti · idempotent)" "python backend/test_core_group_cash_migration_poc.py"
+  # PENGINGAT ANTREAN PERSETUJUAN (permintaan pemilik 2026-08-15). KPI yang benar hanya
+  # bekerja kalau orangnya membuka layar; pengingat menutup celah itu — dan pengingat
+  # adalah fitur yang paling mudah "hijau tapi bohong" (angka basi · mengabaikan ambang
+  # pemilik · menggandakan diri tiap penjadwal jalan). Ketiganya diuji dengan job NYATA,
+  # termasuk BUKTI-MERAH: ambang dinaikkan lewat API Pusat Pengaturan → pengingat wajib
+  # berhenti menyebut dokumen yang lebih muda dari ambang.
+  run_gate "POC Pengingat Antrean Persetujuan (umur tunggu · eskalasi · idempotent · ambang pemilik)" "python backend/test_core_approval_reminder_poc.py"
   # INV-HOME-01 — angka KPI beranda WAJIB sama dengan kenyataan di basis data.
   # Terukur 2026-08-15: KPI "Persetujuan Menunggu" 0 (menghitung koleksi
   # `approval_requests` yang NOL pemanggil) sementara rincian di layar yang sama 6 dan

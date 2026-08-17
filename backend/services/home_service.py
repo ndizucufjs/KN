@@ -172,7 +172,9 @@ async def approval_backlog(entity_id: Optional[str]) -> Dict[str, Any]:
     (dijaga INV-HOME-01).
     """
     from services import approval_backlog_service as abl
-    return await abl.backlog(entity_id)
+    # `with_oldest` — beranda tidak hanya butuh ANGKA: yang membuat orang bertindak
+    # adalah "PO-00010 · menunggu 12 hari" (kartu "Paling Lama Menunggu").
+    return await abl.backlog(entity_id, with_oldest=True, oldest_limit=5)
 
 
 async def _late_today(entity_id: Optional[str], ar_overdue: float = 0.0) -> Dict[str, Any]:

@@ -302,7 +302,8 @@ async def download_evidence(
 # ─── Ringkasan SELURUH antrean keputusan (satu pintu yang jujur) ─────────────
 
 @router.get("/approvals/backlog")
-async def approvals_backlog(request: Request, entity_id: str = None) -> Dict[str, Any]:
+async def approvals_backlog(request: Request, entity_id: str = None,
+                            oldest: int = 0) -> Dict[str, Any]:
     """Berapa yang menunggu keputusan — LINTAS SEMUA jenis, dari satu sumber.
 
     KENAPA ADA (terukur 2026-08-15): layar "Pusat Persetujuan" menghitung antreannya
@@ -328,7 +329,10 @@ async def approvals_backlog(request: Request, entity_id: str = None) -> Dict[str
         scope = None
     else:
         scope = ids[0] if len(ids) == 1 else {"$in": ids}
-    return await abl.backlog(scope)
+    # `?oldest=N` → sekalian bawa N dokumen yang PALING LAMA menunggu (umur tunggu),
+    # supaya layar bisa menyebut "PO-00010 — menunggu 12 hari", bukan cuma angka.
+    n = max(0, min(int(oldest or 0), 25))
+    return await abl.backlog(scope, with_oldest=bool(n), oldest_limit=n or 5)
 
 
 # ─── Inbox approver: antrian persetujuan (flat lintas SO, entity-scoped) ──────

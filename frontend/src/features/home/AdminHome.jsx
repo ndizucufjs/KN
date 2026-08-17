@@ -64,6 +64,7 @@ export default function AdminHome({ token, selectedEntity = "all", onNavigate })
   const overdue = data?.top_overdue || [];
   // Jenis persetujuan terbanyak → dipakai teks bantu & tujuan klik KPI.
   const approvalItems = (data?.approvals?.items || []);
+  const oldestWaiting = (data?.approvals?.oldest || []);
   const topApproval = approvalItems.slice().sort((a, b) => b.count - a.count)[0] || null;
   const approvalSub = (data?.approvals_pending || 0) === 0
     ? "Tidak ada yang menunggu"
@@ -136,6 +137,34 @@ export default function AdminHome({ token, selectedEntity = "all", onNavigate })
                 </button>
               ))}
             </div>
+
+            {/* PALING LAMA MENUNGGU — angka membuat orang tahu ADA pekerjaan; ini yang
+                membuat orang BERTINDAK. Sumbernya `approvals.oldest` (umur tunggu dari
+                tanggal dokumen mulai menunggu), sama dengan isi pengingat harian. */}
+            {oldestWaiting.length > 0 && (
+              <div className="mt-3 border-t border-[#F0E3D2] pt-2" data-testid="admin-home-approval-oldest">
+                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#8E8E93]">
+                  Paling lama menunggu
+                </p>
+                <div className="grid gap-1">
+                  {oldestWaiting.map((o) => (
+                    <button key={`${o.key}-${o.id}`} type="button"
+                      data-testid={`admin-home-oldest-${o.id || o.number}`}
+                      onClick={() => onNavigate && onNavigate(o.view)}
+                      className="flex items-center gap-2 rounded-lg bg-white border border-[#F0E3D2] px-3 py-1.5 text-left hover:border-[#FFB25A] transition">
+                      <span className="text-[12px] font-semibold text-[#1C1C1E] shrink-0">{o.number}</span>
+                      <span className="text-[11.5px] text-[#6B6B73] truncate flex-1">
+                        {o.queue_label.replace(" menunggu ACC", "")} · {o.title}
+                      </span>
+                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums ${
+                        o.days_waiting >= 7 ? "bg-[#FFE5E5] text-[#C62828]" : "bg-[#FFF1DB] text-[#B26A00]"}`}>
+                        {o.days_waiting} hari
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 

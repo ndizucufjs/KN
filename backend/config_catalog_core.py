@@ -307,8 +307,23 @@ E("approval.extra_levels", group="persetujuan", type="table", default={},
   consumers=("services/config_service.py:build_approval_chain",
              "services/approval_service.py"), risk="high")
 
-E("purchasing.price_deviation_approval_percent", group="persetujuan", type="pct",
-  default=10.0, min=0, max=100, step=1, unit="%", scopes=("global", "entity"),
+# PENGINGAT ANTREAN PERSETUJUAN (permintaan pemilik 2026-08-15).
+# Angka KPI yang benar hanya bekerja kalau orangnya membuka layar. Ambang ini menjawab
+# "sejak umur berapa sebuah dokumen layak diteriaki": dokumen yang baru masuk hari ini
+# tidak perlu pengingat, yang sudah menua wajib. Dinaikkan ke admin/pemilik otomatis
+# bila umurnya sudah 2× ambang ini (antrean bukan menumpuk lagi, tapi MANDEK).
+E("approval.reminder_min_days", group="persetujuan", type="int", default=2,
+  min=0, max=60, step=1, unit="hari", scopes=("global", "entity"),
+  label="Umur dokumen sebelum diingatkan",
+  help="Pengingat harian hanya menyebut dokumen yang sudah menunggu keputusan minimal "
+       "sekian hari. Isi 0 bila ingin diingatkan sejak hari pertama.",
+  impact="Menentukan isi pengingat harian 'keputusan yang menunggu Anda' di notifikasi "
+         "manajer. Tidak mengubah dokumen apa pun — hanya kapan orang diberi tahu.",
+  example="Ambang 2 hari · PO-00010 menunggu 12 hari → masuk pengingat & dinaikkan ke "
+          "admin (12 ≥ 2×2)",
+  consumers=("services/approval_reminder.py",), risk="low")
+
+E("purchasing.price_deviation_approval_percent", group="persetujuan", type="pct",  default=10.0, min=0, max=100, step=1, unit="%", scopes=("global", "entity"),
   simulate="price_deviation",
   label="Deviasi harga beli yang wajib disetujui",
   help="Bila harga di PO lebih tinggi dari harga acuan supplier melebihi persen ini, "

@@ -33,6 +33,7 @@ from services import contra_bon_reminder as contrabon  # FASE G-7 — pengingat 
 from services import interco_reminder as icreminder    # FASE G-6b — pengingat settlement antar-PT
 from services import period_unlock_service as punlock   # FASE G-5 — auto-tutup jendela unlock periode
 from services import rnd_sla_service as rndsla          # PS-18 — eskalasi SLA sample R&D
+from services import approval_reminder as aprem          # 2026-08-15 — pengingat antrean persetujuan
 from services import wa_alert_service as wa
 
 logger = logging.getLogger("scheduler")
@@ -126,10 +127,24 @@ JOBS: List[Dict[str, Any]] = [
      "kind": "interval", "interval_hours": 1, "fn": punlock.job_period_unlock_auto_close,
      "link": "period-unlock"},
     # ── PS-18 ─────────────────────────────────────────────────────────────
-    {"id": "rnd_sla_escalation", "label": "Eskalasi SLA Sample R&D",
-     "description": "Round sample labdip/proofing yang masih berjalan tetapi sudah lewat tenggat diberitahukan ke manager setiap hari; bila keterlambatannya sudah mencapai batas di Pusat Pengaturan (rnd.sla_escalate_admin_days, bawaan 3 hari) notifikasi ikut dinaikkan ke admin/pemilik. Permintaan yang sudah diputus atau dibatalkan dilewati. Idempotent: satu notifikasi per hari per round, jadi boleh dijalankan berkali-kali.",
+    {"id": "rnd_sla_escalation", "label": "Eskalasi SLA Sample R&D",     "description": "Round sample labdip/proofing yang masih berjalan tetapi sudah lewat tenggat diberitahukan ke manager setiap hari; bila keterlambatannya sudah mencapai batas di Pusat Pengaturan (rnd.sla_escalate_admin_days, bawaan 3 hari) notifikasi ikut dinaikkan ke admin/pemilik. Permintaan yang sudah diputus atau dibatalkan dilewati. Idempotent: satu notifikasi per hari per round, jadi boleh dijalankan berkali-kali.",
      "kind": "daily", "hour": 7, "minute": 35, "fn": rndsla.job_rnd_sla_escalation,
      "link": "rnd-reports"},
+    # ── PENGINGAT ANTREAN PERSETUJUAN (permintaan pemilik 2026-08-15) ──────
+    {"id": "approval_backlog_reminder", "label": "Pengingat Keputusan yang Menunggu",
+     "description": "Ingatkan manajer setiap pagi tentang dokumen yang menunggu "
+                    "KEPUTUSANNYA paling lama — bukan sekadar jumlah, tetapi nomor "
+                    "dokumen, jenis, dan sudah berapa hari menunggu (mis. 'PO-00010 · "
+                    "Palembang Silk House — menunggu 12 hari'). Sumber angkanya SAMA "
+                    "dengan KPI beranda & Pusat Persetujuan (services/"
+                    "approval_backlog_service.py) sehingga tidak mungkin berbeda. "
+                    "Ambang umur diatur pemilik di Pusat Pengaturan "
+                    "(approval.reminder_min_days, bawaan 2 hari); bila umur dokumen "
+                    "sudah ≥ 2× ambang, notifikasi ikut dinaikkan ke admin/pemilik "
+                    "karena antreannya bukan menumpuk lagi tetapi MANDEK. Idempotent: "
+                    "satu notifikasi per hari per badan usaha.",
+     "kind": "daily", "hour": 7, "minute": 45, "fn": aprem.job_approval_backlog_reminder,
+     "link": "approval-inbox"},
 ]
 JOB_MAP: Dict[str, Dict[str, Any]] = {j["id"]: j for j in JOBS}
 
